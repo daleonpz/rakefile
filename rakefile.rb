@@ -28,10 +28,10 @@ STATIC_LIBS = "-llibmath.a -llibc.a"
 MEMORY_MAP = "#{BUILD_DIR}/memory.map"
 
 ##############################################
-## Support Code 
+## Ruby Tools 
 ##############################################
-eval File.read("tools/colors.rb")
-
+require_relative "tools/RakeSupportFunctions"
+include RakeSupportFunctions
 
 ##############################################
 ## Building Process
