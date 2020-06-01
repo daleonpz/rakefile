@@ -4,28 +4,67 @@ require 'rake/clean'
 ## Define Compiler/linker Variables 
 ##############################################
 
+TOOLCHAIN_PATH  = "/home/me/ti/ccs1000/ccs"
+COMPILER_PATH   = "#{TOOLCHAIN_PATH}/tools/compiler/ti-cgt-msp430_20.2.0.LTS"
+
+
 SOURCE_DIR  = "src"
 INCLUDE_DIR = "include/"
 OBJ_DIR     = "build/obj"
 BUILD_DIR   = "build"
-GCC         = "/home/me/ti/ccs1000/ccs/tools/compiler/ti-cgt-msp430_20.2.0.LTS/bin/cl430" 
+GCC         = "#{COMPILER_PATH}/bin/cl430" 
 
-DEV_NAME = "msp430fr5969"
 
-DEVICE = "__#{DEV_NAME.upcase}__"
-LINKER_CMD_FILE = "lnk_#{DEV_NAME.downcase}.cmd"
+DEV_NAME    = "msp430fr5969"
+DEVICE      = "__#{DEV_NAME.upcase}__"
+
 
 FileUtils.mkdir_p "#{OBJ_DIR}/"
 FileUtils.mkdir_p "#{BUILD_DIR}/"
+
 
 SOURCES     = Rake::FileList["#{SOURCE_DIR}/*.c"]
 OBJECTS     = SOURCES.ext(".obj").pathmap("#{OBJ_DIR}/%f")
 INCLUDES    = INCLUDE_DIR
 TARGET      = "#{BUILD_DIR}/app"
 
-STATIC_LIBS = "-llibmath.a -llibc.a"
 
-MEMORY_MAP = "#{BUILD_DIR}/memory.map"
+LINKER_CMD_FILE = "lnk_#{DEV_NAME.downcase}.cmd"
+STATIC_LIBS     = "-llibmath.a -llibc.a"
+LIBS            = "#{LINKER_CMD_FILE} #{STATIC_LIBS}"
+
+
+
+INCLUDE_PATHS = " \
+                --include_path=\"#{TOOLCHAIN_PATH}/ccs_base/msp430/include\"  \
+                --include_path=#{INCLUDES}  \
+                --include_path=\"#{COMPILER_PATH}/include\" \
+                " 
+
+INCLUDE_LIBS_PATH = " \
+                    -i\"#{TOOLCHAIN_PATH}/ccs_base/msp430/include\" \
+                    -i\"#{TOOLCHAIN_PATH}/ccs_base/msp430/lib/5xx_6xx_FRxx\"    \
+                    -i\"#{COMPILER_PATH}/lib\"  \
+                    -i\"#{COMPILER_PATH}/include\" \
+                    "
+
+COMPILER_OPTS   = "-vmspx --use_hw_mpy=F5 -g --c99 --define=#{DEVICE}"
+
+MEMORY_MAP  = "#{BUILD_DIR}/memory.map"
+LINKER_OPTS = "--run_linker --heap_size=160 --stack_size=160 -m#{MEMORY_MAP}"
+LINKER_OUTPUT_OPTS  = "" #"--xml_link_info=\"#{TARGET}.xml\""
+
+
+MISC_OPTS           = "--advice:power=\"all\" --advice:hw_config=\"all\"" 
+DIAGNOSTIC_OPTS     = "--diag_warning=255 --diag_wrap=off --display_error_number --warn_sections"
+RUNTIME_ENV_OPTS    = "--cinit_hold_wdt=on --rom_model"
+RUNTIME_MODEL_OPTS  = "--printf_support=minimal --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40"
+FILE_SEARCH_PATH_OPTS   = "--reread_libs"
+
+
+CFLAGS = "#{COMPILER_OPTS} #{MISC_OPTS} #{RUNTIME_MODEL_OPTS}"
+LFLAGS = "#{LINKER_OPTS} #{RUNTIME_ENV_OPTS} #{DIAGNOSTIC_OPTS} #{FILE_SEARCH_PATH_OPTS} #{LINKER_OUTPUT_OPTS}"
+
 
 ##############################################
 ## Ruby Tools 
@@ -40,8 +79,8 @@ task :default => :build
 
 task :build => OBJECTS do
     puts "#{BBlue}[Linking]#{Color_Off}\n"
-    quiet_sh "#{GCC} -vmspx --use_hw_mpy=F5 --advice:power=\"all\" --advice:hw_config=\"all\" --define=#{DEVICE} -g --c99 --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 -z -m#{MEMORY_MAP} --heap_size=160 --stack_size=160 --cinit_hold_wdt=on -i\"/home/me/ti/ccs1000/ccs/ccs_base/msp430/include\" -i\"/home/me/ti/ccs1000/ccs/ccs_base/msp430/lib/5xx_6xx_FRxx\" -i\"/home/me/ti/ccs1000/ccs/tools/compiler/ti-cgt-msp430_20.2.0.LTS/lib\" -i\"/home/me/ti/ccs1000/ccs/tools/compiler/ti-cgt-msp430_20.2.0.LTS/include\" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info=\"#{TARGET}.xml\" --use_hw_mpy=F5 --rom_model -o #{TARGET}.out #{OBJECTS} #{LINKER_CMD_FILE}  #{STATIC_LIBS}"
-   
+    quiet_sh "#{GCC} #{CFLAGS} #{LFLAGS} #{INCLUDE_LIBS_PATH} -o #{TARGET}.out #{OBJECTS} #{LIBS}"
+
 end
 
 
@@ -52,7 +91,7 @@ end
 # For each '.o' file add path "SOURCE_DIR/ " and change extension to C
 rule '.obj' => ->(t){t.pathmap("#{SOURCE_DIR}/%f").ext(".c")} do |task|
     puts "#{BBlue}[Building Object] #{task.name} #{Color_Off} \n"
-    quiet_sh "#{GCC} -vmspx --use_hw_mpy=F5 --include_path=\"/home/me/ti/ccs1000/ccs/ccs_base/msp430/include\"  --include_path=#{INCLUDES} --include_path=\"/home/me/ti/ccs1000/ccs/tools/compiler/ti-cgt-msp430_20.2.0.LTS/include\" --advice:power=\"all\" --advice:hw_config=\"all\" --define=#{DEVICE} -g --c99 --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number --silicon_errata=CPU21 --silicon_errata=CPU22 --silicon_errata=CPU40 --preproc_with_compile --preproc_dependency=#{task.name.ext(".d_raw")} --obj_directory=#{OBJ_DIR}/ #{task.source} #{COLOR_OUTPUT} " 
+    quiet_sh "#{GCC} #{CFLAGS}  #{INCLUDE_PATHS} --preproc_with_compile --preproc_dependency=#{task.name.ext(".d_raw")} --obj_directory=#{OBJ_DIR}/ #{task.source} #{COLOR_OUTPUT} " 
 
 end
 
