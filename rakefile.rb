@@ -4,6 +4,7 @@ require 'rake/clean'
 ## Define Compiler/linker Variables 
 ##############################################
 
+
 SOURCE_DIR  = "src"
 INCLUDE_DIR = "include/"
 OBJ_DIR     = "build/obj"
