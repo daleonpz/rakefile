@@ -7,7 +7,6 @@ require 'rake/clean'
 TOOLCHAIN_PATH  = "/home/me/ti/ccs1000/ccs"
 COMPILER_PATH   = "#{TOOLCHAIN_PATH}/tools/compiler/ti-cgt-msp430_20.2.0.LTS"
 
-
 SOURCE_DIR  = "src"
 INCLUDE_DIR = "include/"
 OBJ_DIR     = "build/obj"
